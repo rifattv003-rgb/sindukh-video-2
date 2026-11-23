@@ -1,0 +1,45 @@
+name: Render sindukh-video-2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Locate project directory
+        id: locate
+        run: |
+          PKG_PATH=$(find . -maxdepth 4 -name "package.json" -not -path "*/node_modules/*" | head -n 1)
+          if [ -z "$PKG_PATH" ]; then
+            echo "package.json not found in repository"
+            exit 1
+          fi
+          PROJ_DIR=$(dirname "$PKG_PATH")
+          echo "Found project directory: $PROJ_DIR"
+          echo "proj_dir=$PROJ_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        working-directory: ${{ steps.locate.outputs.proj_dir }}
+        run: npm install
+
+      - name: Render Story composition
+        working-directory: ${{ steps.locate.outputs.proj_dir }}
+        run: npx remotion render src/index.ts Story out/sindukh-video-2.mp4
+
+      - name: Upload rendered video artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sindukh-video-2-output
+          path: ${{ steps.locate.outputs.proj_dir }}/out/sindukh-video-2.mp4
